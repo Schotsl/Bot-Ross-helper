@@ -1,13 +1,23 @@
-export function validateDefined(response, label, value) {
+function validateDefined(response, label, value) {
   if (typeof value === "undefined") {
-    response.body = `Property '${label}' is missing.`
-    response.status = 400;
+    response.status(400);
+    response.send(`Property '${label}' is missing.`);
+
+    return false;
   }
+
+  return true;
 }
 
-export function validateType(response, label, value, type) {
+function validateType(response, label, value, type) {
   if (typeof value !== type) {
-    response.body = `Property '${label}' should be a string.`;
-    response.status = 400;
+    response.status(400);
+    response.send(`Property '${label}' should be a string.`);
+
+    return false;
   }
+
+  return true;
 }
+
+module.exports = { validateDefined, validateType };
