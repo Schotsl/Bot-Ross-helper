@@ -1,21 +1,20 @@
 {
-  "dependencies": {
-    "express": "^4.17.1",
-    "node-hue-api": "^5.0.0-beta.8",
-    "quick-local-ip": "^1.0.7",
-    "sonos": "^1.14.1"
-  },
-  "name": "bot-ross-helper",
+  "name": "blackbox-node",
   "version": "1.0.0",
+  "description": "",
   "main": "index.js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Schotsl/Bot-Ross-helper.git"
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Sjors van Holst",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Schotsl/Bot-Ross-helper/issues"
-  },
-  "homepage": "https://github.com/Schotsl/Bot-Ross-helper#readme"
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.49.0",
+    "@aws-sdk/s3-request-presigner": "^3.49.0",
+    "aws-sdk": "^2.1069.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.2"
+  }
 }

@@ -1,75 +1,76 @@
-const sonos = require('sonos');
-const huev3 = require('node-hue-api').v3;
-const express = require('express');
-const network = require('quick-local-ip');
+import express from 'express';
+import cors from 'cors';
 
-const { Sonos } = require('sonos');
+import 'dotenv/config'
 
-const GroupLightState = huev3.model.lightStates.GroupLightState
+import { validateDefined, validateType } from "./helper.js";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-const app = express()
-const port = 3000;
-const ipv4 = network.getLocalIP4();
-const user = 'HRnPq6nm2hWWYxPxIZGMka9k5-ngJ07NK5gb7tky';
+const port = 443;
+const app = express();
 
-app.use(express.json());
-app.use('/public', express.static('public'));
+app.use(cors());
+app.use(express.json())
 
-app.get('/hue/light', async (request, response) => {
-    const bridge = await huev3.api.createLocal('192.168.2.21').connect(user);
-    const lights = await bridge.lights.getAll();
-    const parsed = lights.map(light => { return { id: light.data.id, name: light.data.name }});
+app.post('/v1/signed/put', async (request, res) => {
+  const { body, query } = request;
+  const { file, type, size } = body;
+  const { key, bucket, secret, endpoint } = query;
 
-    response.send(parsed);
+  validateDefined(response, key, 'key');
+  validateDefined(response, file, 'file');
+  validateDefined(response, type, 'type');
+  validateDefined(response, size, 'size');
+  validateDefined(response, bucket, 'bucket');
+  validateDefined(response, secret, 'secret');
+  validateDefined(response, endpoint, 'endpoint');
+
+  validateType(response, key, 'key', 'string');
+  validateType(response, file, 'file', 'string');
+  validateType(response, type, 'type', 'string');
+  validateType(response, size, 'size', 'number');
+  validateType(response, bucket, 'bucket', 'string');
+  validateType(response, secret, 'secret', 'string');
+  validateType(response, endpoint, 'endpoint', 'string');
+ 
+  const client = new S3Client({ region: "ams3", endpoint: endpoint, accessKeyId: key, secretAccessKey: secret });
+  const params = { Key: file, Bucket: bucket, ContentType: type, ContentLength: size };
+
+  const config = { expiresIn: 60 }
+  const command = new PutObjectCommand(params);
+  const response = await getSignedUrl(client, command, config);
+
+  res.send(response);
 });
 
-app.get('/hue/group', async (request, response) => {
-    const bridge = await huev3.api.createLocal('192.168.2.21').connect(user);
-    const groups = await bridge.groups.getAll();
-    const parsed = groups.map(group => { return { id: group.data.id, name: group.data.name }});
+app.post('/v1/signed/get', async (request, res) => {
+  const { query } = request;
+  const { key, file, bucket, secret, endpoint } = query;
 
-    response.send(parsed);
+  validateDefined(response, key, 'key');
+  validateDefined(response, file, 'file');
+  validateDefined(response, bucket, 'bucket');
+  validateDefined(response, secret, 'secret');
+  validateDefined(response, endpoint, 'endpoint');
+
+  validateType(response, key, 'key', 'string');
+  validateType(response, file, 'file', 'string');
+  validateType(response, bucket, 'bucket', 'string');
+  validateType(response, secret, 'secret', 'string');
+  validateType(response, endpoint, 'endpoint', 'string');
+
+  const client = new S3Client({ region: "ams3", endpoint: endpoint, accessKeyId: key, secretAccessKey: secret });
+  const params = { Key: file, Bucket: bucket };
+
+  const config = { expiresIn: 60 }
+  const command = new GetObjectCommand(params);
+  const response = await getSignedUrl(client, command, config);
+
+  res.send(response);
 });
 
-app.post('/hue/group', async (request, response) => {
-    const bridge = await huev3.api.createLocal('192.168.2.21').connect(user);
-    const state = new GroupLightState().alertShort();
-  
-    await bridge.groups.setGroupState(1, state)
-
-    response.send();
-});
-
-app.get('/sonos', async (request, response) => {
-    const Discovery = sonos.AsyncDeviceDiscovery;
-    const discovery = new Discovery();
-
-    const devices = await discovery.discoverMultiple({ timeout: 1000 });
-    const parsed = devices.map(device => device.host);
-
-    response.send(parsed);
-});
-
-app.post('/sonos/:speaker', (request, response) => {
-    const filename = request.body.filename;
-    const speaker = request.params.speaker;
-
-    const device = new Sonos(speaker);
-
-    device.play(`http://${ipv4}:3000/public/${filename}`);
-
-    response.send();
-});
-
-async function startup() {
-    const bridge = await huev3.api.createLocal('192.168.2.21').connect(user);
-    const device = new Sonos('192.168.2.196');
-    const state = new GroupLightState().effectColorLoop();
-
-    device.play(`http://${ipv4}:3000/public/startup.mp3`);
-    bridge.groups.setGroupState(1, state)
-}
-
-startup();
-
-app.listen(port);
+app.listen(port, () =>
+  console.log(`Bot-Ross helper listening on port ${port}!`),
+);
